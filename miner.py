@@ -2,12 +2,13 @@ import tweepy
 import time
 import pymongo
 import os
+import json
 import networkx as nx
 import matplotlib.pyplot as plt	
 from db_insert import Database_Inserting	
 
-auth = tweepy.OAuthHandler("")
-auth.set_access_token("")
+auth = tweepy.OAuthHandler("KKwsfmkUMpv8ag7ptJPui5Xp8", "w6Fx0fPl7rfNayZXPgQ3crIAsWaNaENmtQJZJSnGgLJtoWs1Wt")
+auth.set_access_token("4178185372-Eq4HWoHZtOu1e8uizQhvEKF8ylRAqmBAf7zN2LK", "cC7RTyjoeQr68zAd1Dq6lhtnwAUO6AUQO2GUZow8EdKBC")
 api = tweepy.API(auth)
 
 	
@@ -54,30 +55,29 @@ def get_followers_ids(followers_count,retweeters):
 		followers_ids = status.id
 	return followers_ids
 	
-def find_matches(followers_ids,retweet_ids):
+def find_matches(followers,followers_ids,retweet_ids,original_tweet):
 	for f in followers_ids:
 		for r in retweet_ids:
 			if followers_ids == r:
-				g.add_node(user_ids.id)
-				g.add_node(j)
-				g.add_edge(user_ids.id,j)
+				g.add_node(followers.id)
+				g.add_node(r)
+				g.add_edge(followers.id,r)
 				print "its a match!!!!!!!!!!!!!!!!"
 			elif follower_ids == original_tweet.author.id:
-				g.add_node(j)
+				g.add_node(r)
 				g.add_node(original_tweet.author.id)
-				g.add_edge(j,original_tweet.author.id)
+				g.add_edge(r,original_tweet.author.id)
 				print "its a match!!!!!!!!!!!!!!!!"
 			else:
-				g.add_node(j)
+				g.add_node(r)
 				g.add_node(original_tweet.author.id)
-				g.add_edge(j,original_tweet.author.id)
+				g.add_edge(r,original_tweet.author.id)
 				print "no match"
 	print nx.info(g)
 	nx.draw(g)
 	plt.show
-	
-			
-if __name__ == '__main__':
+
+def main():
 	username = input ("Type the user's name")
 	timeline=find_timeline(username)
 	retweet = find_first_tweet(timeline)
@@ -91,4 +91,18 @@ if __name__ == '__main__':
 	followers_ids = get_followers_ids(followers_count)
 	find_matches(followers_ids,retweet_ids)
 	db_insert = Database_Inserting()
-	db_insert.insert_to_db(username,retweet_ids,retweeters,ids,)
+	db_data = {"id":user_id,
+		"screen_name":retweeters,
+		"followers":followers_,
+		"followers_ids":followers_ids,
+		"tweet_id":tweet_id,
+		"tag":tag,
+		"author id":author_id,
+		"retweeted id":retweeted_id,
+		"tweet text":tweet_text,
+		"created date":created_date
+		}
+	dataJSON = json.dumps(db_data)
+	db_insert.insert_to_db(dataJSON)
+if __name__ == '__main__':
+	main()
