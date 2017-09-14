@@ -4,7 +4,7 @@ import pymongo
 import os
 import json
 import networkx as nx
-import matplotlib.pyplot as plt	
+import matplotlib.pyplot as plt
 from db_insert import Database_Inserting	
 
 auth = tweepy.OAuthHandler("")
@@ -15,9 +15,14 @@ api = tweepy.API(auth)
 def find_timeline(username):
 	timeline = api.user_timeline(username)
 	return timeline
-		
+
+def get_user_id(username):
+	user = api.get_user(screen_name=username)
+	user_id = user.id
+	return user_id
+	
 def find_first_tweet(timeline):
-	retweet = timeline[1]
+	retweet = timeline[0]
 	return retweet
 		
 def get_orig_tw_id(retweet):
@@ -53,9 +58,10 @@ def get_followers_ids(followers_count,retweeters):
 	for f in range(len(followers)):
 		status = followers[f]
 		followers_ids = status.id
-	return followers_ids
+	return followers_ids,followers
 	
 def find_matches(followers,followers_ids,retweet_ids,original_tweet):
+	g = nx.Graph()
 	for f in followers_ids:
 		for r in retweet_ids:
 			if followers_ids == r:
@@ -63,7 +69,7 @@ def find_matches(followers,followers_ids,retweet_ids,original_tweet):
 				g.add_node(r)
 				g.add_edge(followers.id,r)
 				print "its a match!!!!!!!!!!!!!!!!"
-			elif follower_ids == original_tweet.author.id:
+			elif followers_ids == original_tweet.author.id:
 				g.add_node(r)
 				g.add_node(original_tweet.author.id)
 				g.add_edge(r,original_tweet.author.id)
@@ -79,7 +85,8 @@ def find_matches(followers,followers_ids,retweet_ids,original_tweet):
 
 def main():
 	username = input ("Type the user's name")
-	timeline=find_timeline(username)
+	timeline= find_timeline(username)
+	user_id = get_user_id(username)
 	retweet = find_first_tweet(timeline)
 	retweet_id = get_orig_tw_id(retweet)
 	original_tweet = get_orig_tw(retweet_id)
@@ -88,21 +95,23 @@ def main():
 	retweeters = get_followers(retweet_ids)
 	ids = get_followers(retweet_ids)
 	followers_count = get_followers_count(retweeters_ids)
-	followers_ids = get_followers_ids(followers_count)
-	find_matches(followers_ids,retweet_ids)
+	followers_ids = get_followers_ids(followers_count,retweeters)
+	followers = get_followers_ids(followers_count,retweeters)
+	find_matches(followers,followers_ids,retweet_ids,original_tweet)
 	db_insert = Database_Inserting()
 	db_data = {"id":user_id,
 		"screen_name":retweeters,
-		"followers":followers_,
+		"followers":followers,
 		"followers_ids":followers_ids,
-		"tweet_id":tweet_id,
-		"tag":tag,
-		"author id":author_id,
-		"retweeted id":retweeted_id,
-		"tweet text":tweet_text,
-		"created date":created_date
+		"tweet_id":retweet_id,
+		#"tag":tag,
+		"author id":original_tweet.author.id,
+		"retweeted id":retweet_ids,
+		"tweet text":original_tweet.text,
+		#"created date":created_date
 		}
 	dataJSON = json.dumps(db_data)
+	print "done"
 	db_insert.insert_to_db(dataJSON)
 if __name__ == '__main__':
 	main()
