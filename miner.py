@@ -87,21 +87,49 @@ def main():
 	username = input ("Type the user's name")
 	timeline= find_timeline(username)
 	user_id = get_user_id(username)
+	print "stage 1"
 	retweet = find_first_tweet(timeline)
+	print "stage 2"
 	retweet_id = get_orig_tw_id(retweet)
+	print "stage 3"
 	original_tweet = get_orig_tw(retweet_id)
+	print "stage 4"
 	retweet_ids = get_rt_ids(original_tweet)
+	print "stage 5"
 	retweeters_ids = get_followers(retweet_ids)
+	print "stage 6"
 	retweeters = get_followers(retweet_ids)
+	print "stage 7"
 	ids = get_followers(retweet_ids)
+	print "stage 8"
 	followers_count = get_followers_count(retweeters_ids)
+	print "stage 9"
 	followers_ids = get_followers_ids(followers_count,retweeters)
+	print "stage 10"
 	followers = get_followers_ids(followers_count,retweeters)
+	print "stage 11"
 	find_matches(followers,followers_ids,retweet_ids,original_tweet)
+	print "stage 12"
 	db_insert = Database_Inserting()
+	print "User_id" ,user_id
+	time.sleep(60)
+	print "retweeters", retweeters
+	time.sleep(60)
+	print "ids", ids
+	time.sleep(60)
+	print "followers_ids", followers_ids
+	time.sleep(60)
+	print "retweet_id", retweet_id
+	time.sleep(60)
+	print "original_tweet_author_id", original_tweet.author.id
+	time.sleep(60)
+	print "retweet_ids", retweet_ids
+	time.sleep(60)
+	print "tweet.text", original_tweet.text
+	time.sleep(60)
 	db_data = {"id":user_id,
 		"screen_name":retweeters,
-		"followers":followers,
+		"followers":ids,
 		"followers_ids":followers_ids,
 		"tweet_id":retweet_id,
 		#"tag":tag,
