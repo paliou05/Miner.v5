@@ -4,12 +4,13 @@ import pymongo
 import os
 import json
 import networkx as nx
-import matplotlib.pyplot as plt
+import datetime
+#import matplotlib.pyplot as plt
 from db_insert import Database_Inserting	
 
-auth = tweepy.OAuthHandler("", "")
-auth.set_access_token("", "")
-api = tweepy.API(auth)
+auth = tweepy.OAuthHandler("KKwsfmkUMpv8ag7ptJPui5Xp8", "w6Fx0fPl7rfNayZXPgQ3crIAsWaNaENmtQJZJSnGgLJtoWs1Wt")
+auth.set_access_token("4178185372-Eq4HWoHZtOu1e8uizQhvEKF8ylRAqmBAf7zN2LK", "cC7RTyjoeQr68zAd1Dq6lhtnwAUO6AUQO2GUZow8EdKBC")
+api = tweepy.API(auth, wait_on_rate_limit = True, wait_on_rate_limit_notify = True)
 
 
 #getting user's timeline	
@@ -27,7 +28,7 @@ def get_user_id(username):
 
 #getting the first retweet he made	
 def find_first_tweet(timeline):
-	retweet = timeline[0]
+	retweet = timeline[2]
 	return retweet
 
 
@@ -45,131 +46,142 @@ def get_orig_tw(retweet_id):
 
 #getting the users ids retweeted the tweet		
 def get_rt_ids(original_tweet):
-	retweet_ids = api.retweets(original_tweet.id)
+	retweet_ids = api.retweets(original_tweet.id, 100)
 	return retweet_ids
 
 
-#getting the screen names of the retweeters and their followers ids	
+#getting the screen names of the retweeters
 def get_followers(retweet_ids):
 	retweeters = []
 	for i in retweet_ids:
-		#retweeters screen names
 		retweeters.append(i.author.screen_name)
-		rtwtrs = i.author.screen_name
-		#retweeters ids
-		ids = []
-		for page in tweepy.Cursor(api.followers_ids, screen_name=rtwtrs).pages():
-			ids.extend(page)
-			time.sleep(90)
-	return retweeters,ids
+	return retweeters
 
 
+def get_retweeters_ids(retweet_ids):
+	retweeters_ids = []
+	for i in retweet_ids:
+		retweeters_ids.append(i.author.id)
+	return retweeters_ids
 		
+
+"""
+#getting the retweeter's followers ids
+def get_followers_ids(retweeters):
+	flwrs_ids = []
+	for i in retweeters:
+		ids = []
+		for page in tweepy.Cursor(api.followers_ids, screen_name=retweeters).pages():
+			ids.extend(page)
+		flwrs_ids.append(ids)
+	return flwrs_ids
+"""
+
+
+#getting the author screen name
+def get_author_screen_name(original_tweet):
+	author_username = (original_tweet.author.screen_name).encode("utf-8")
+	return author_username
+
+
+#getting the author id
+def get_author_id(original_tweet):
+	author_id = original_tweet.author.id
+	return author_id
+
+
+#getting the author followers
+def get_author_followers(author_username):
+	author_followers = []
+	for page in tweepy.Cursor(api.followers_ids,screen_name=author_username).pages():
+		author_followers.extend(page)
+	return author_followers
+
+
+#getting the count of followers		
 def get_followers_count(retweet_ids):
 	followers_count = len(retweet_ids)
 	return followers_count
 		
 	
-def get_followers_ids(followers_count,retweeters):
-	followers = api.followers(screen_name=retweeters)
-	for f in range(len(followers)):
-		status = followers[f]
-		followers_ids = status.id
-	return followers_ids,followers
+#def get_followers_ids(followers_count,retweeters):
+	#followers = api.followers(screen_name=retweeters)
+	#for f in range(len(followers)):
+		#status = followers[f]
+		#followers_ids = status.id
+	#return followers_ids,followers
+
 	
-def find_matches(retweeters,followers_count,retweet_ids,original_tweet):
+#def find_matches(retweeters,flwrs_ids,followers_count,retweet_ids,original_tweet,retweeters_ids,author_followers):
+def isFollower(author_username,retweeters):	
+	showfriendship = api.show_friendship(source_screen_name=author_username,
+                             target_screen_name=retweeters)
+	return showfriendship[0].followed_by
+
+
+def find_matches(author_username,retweeters):
 	g = nx.Graph()
-	followers = api.followers(screen_name=retweeters)
-	followers_ids = get_followers_ids(followers_count,retweeters)
-	for f in followers_ids:
-		for r in retweet_ids:
-			if followers_ids == r:
-				g.add_node(followers.id)
-				g.add_node(r)
-				g.add_edge(followers.id,r)
-				print "its a match!!!!!!!!!!!!!!!!"
-			elif followers_ids == original_tweet.author.id:
-				g.add_node(r)
-				g.add_node(original_tweet.author.id)
-				g.add_edge(r,original_tweet.author.id)
-				print "its a match!!!!!!!!!!!!!!!!"
-			else:
-				g.add_node(r)
-				g.add_node(original_tweet.author.id)
-				g.add_edge(r,original_tweet.author.id)
-				print "no match"
+	unconn = []
+	for i in retweeters:
+		if isFollower(author_username,i):
+			print("%s <=== %s" % (author_username, i))
+			g.add_node(i)
+			g.add_node(author_username)
+			g.add_edge(i,author_username)
+		else:
+			unconn.append(i)
+			
+	for i in unconn:
+		for j in unconn:
+			if isFollower(i,j):
+				print("%s <=== %s" % (i, j))
+				g.add_node(i)
+				g.add_node(j)
+				g.add_edge(i,j)
 	print nx.info(g)
-	nx.draw(g)
-	plt.show
+
 
 def main():
 	username = input ("Type the user's name")
 	timeline= find_timeline(username)
 	user_id = get_user_id(username)
-	print "stage 1"
-	print user_id
+	print "stage 1-user_id"
 	retweet = find_first_tweet(timeline)
-	print retweet
-	print "stage 2"
+	print "stage 2-retweet"
 	retweet_id = get_orig_tw_id(retweet)
-	print retweet_id
-	print "stage 3"
+	print "stage 3-retweet_id"
 	original_tweet = get_orig_tw(retweet_id)
 	text = (original_tweet.text).encode("utf-8")
-	print text
-	print "stage 4"
+	print "stage 4-original tweet & text"
 	retweet_ids = get_rt_ids(original_tweet)
-	print type(retweet_ids)
-	print "stage 5"
-	time.sleep(60)
-	followers_list = get_followers(retweet_ids)
-	retweeters_ids = followers_list
-	retweeters = followers_list
-	ids = followers_list
-	"""
-	retweeters_ids,retweeters,ids = get_followers(retweet_ids)"""
-	print "stage 6"
-	"""retweeters = get_followers(retweet_ids)"""
-	print "stage 7"
-	"""ids = get_followers(retweet_ids)"""
-	print "stage 8"
-	followers_count = get_followers_count(retweeters_ids)
-	print "stage 9"
-	followers_ids = get_followers_ids(followers_count,retweeters)
-	print "stage 10"
-	followers = get_followers_ids(followers_count,retweeters)
-	print "stage 11"
-	find_matches(retweeters,followers_count,retweet_ids,original_tweet)
-	print "stage 12"
+	retweeters_ids = get_retweeters_ids(retweet_ids)
+	print "stage 5-retweet_ids"
+	a = datetime.datetime.now()
+	retweeters = get_followers(retweet_ids)
+	#flwrs_ids = get_followers_ids(retweeters)
+	b = datetime.datetime.now()
+	c = b-a
+	print c
+	print "stage 6-retweeters/Rtwtrs followers"
+	author_username = get_author_screen_name(original_tweet)
+	author_id = get_author_id(original_tweet)
+	print "stage 7-author username-id"
+	author_followers = get_author_followers(author_username)
+	print "stage 8-author followers"
+	followers_count = get_followers_count(retweet_ids)
+	print "stage 9-followers count"
+	find_matches(author_username,retweeters)
+#find_matches(retweeters,flwrs_ids,followers_count,retweet_ids,original_tweet,retweeters_ids,author_followers)
+	print "stage 10-starting MongoDB stage"
 	db_insert = Database_Inserting()
-	print "User_id" ,user_id
-	time.sleep(60)
-	print "retweeters", retweeters
-	time.sleep(60)
-	print "ids", ids
-	time.sleep(60)
-	print "followers_ids", followers_ids
-	time.sleep(60)
-	print "retweet_id", retweet_id
-	time.sleep(60)
-	print "original_tweet_author_id", original_tweet.author.id
-	time.sleep(60)
-	print "retweet_ids", retweet_ids
-	time.sleep(60)
-	print "tweet.text", text
-	time.sleep(60)
-	db_data = {"id":user_id,
-		"screen_name":retweeters,
-		"followers":ids,
-		"followers_ids":followers_ids,
-		"tweet_id":retweet_id,
-		#"tag":tag,
-		"author id":original_tweet.author.id,
-		"retweeted id":retweet_ids,
-		"tweet text":text,
-		#"created date":created_date
+	db_data = {"author_id":author_id,
+		"author_screen_name":author_username,
+		"author_followers":author_followers,
+		"retweeters":retweeters,
+		"tweet_text":original_tweet.text,
 		}
 	dataJSON = json.dumps(db_data)
+	dataJSON = json.loads(dataJSON)
 	print "done"
 	db_insert.insert_to_db(dataJSON)
 	print "ALL DONE"
