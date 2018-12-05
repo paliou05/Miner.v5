@@ -7,9 +7,9 @@ import networkx as nx
 import datetime
 #import matplotlib.pyplot as plt
 from db_insert import Database_Inserting	
-
-auth = tweepy.OAuthHandler("KKwsfmkUMpv8ag7ptJPui5Xp8", "w6Fx0fPl7rfNayZXPgQ3crIAsWaNaENmtQJZJSnGgLJtoWs1Wt")
-auth.set_access_token("4178185372-Eq4HWoHZtOu1e8uizQhvEKF8ylRAqmBAf7zN2LK", "cC7RTyjoeQr68zAd1Dq6lhtnwAUO6AUQO2GUZow8EdKBC")
+#keys and rate limiter for the API
+auth = tweepy.OAuthHandler("")
+auth.set_access_token("")
 api = tweepy.API(auth, wait_on_rate_limit = True, wait_on_rate_limit_notify = True)
 
 
@@ -50,23 +50,22 @@ def get_rt_ids(original_tweet):
 	return retweet_ids
 
 
-#getting the screen names of the retweeters
+#makes a list of retweeters screen names
 def get_followers(retweet_ids):
 	retweeters = []
 	for i in retweet_ids:
 		retweeters.append(i.author.screen_name)
 	return retweeters
 
-
+#makes a list of retweeters ids
 def get_retweeters_ids(retweet_ids):
 	retweeters_ids = []
 	for i in retweet_ids:
 		retweeters_ids.append(i.author.id)
 	return retweeters_ids
 		
-
+#checking for follower's ids
 """
-#getting the retweeter's followers ids
 def get_followers_ids(retweeters):
 	flwrs_ids = []
 	for i in retweeters:
@@ -90,7 +89,7 @@ def get_author_id(original_tweet):
 	return author_id
 
 
-#getting the author followers
+#making a list of the author followers
 def get_author_followers(author_username):
 	author_followers = []
 	for page in tweepy.Cursor(api.followers_ids,screen_name=author_username).pages():
@@ -103,22 +102,25 @@ def get_followers_count(retweet_ids):
 	followers_count = len(retweet_ids)
 	return followers_count
 		
-	
-#def get_followers_ids(followers_count,retweeters):
-	#followers = api.followers(screen_name=retweeters)
-	#for f in range(len(followers)):
-		#status = followers[f]
-		#followers_ids = status.id
-	#return followers_ids,followers
+#followers ids	
+"""def get_followers_ids(followers_count,retweeters):
+	followers = api.followers(screen_name=retweeters)
+	for f in range(len(followers)):
+		status = followers[f]
+		followers_ids = status.id
+	return followers_ids,followers"""
 
 	
 #def find_matches(retweeters,flwrs_ids,followers_count,retweet_ids,original_tweet,retweeters_ids,author_followers):
+
+
+#checking the friendship between two given users
 def isFollower(author_username,retweeters):	
 	showfriendship = api.show_friendship(source_screen_name=author_username,
                              target_screen_name=retweeters)
 	return showfriendship[0].followed_by
 
-
+#finds matches between users and makes a graph
 def find_matches(author_username,retweeters):
 	g = nx.Graph()
 	unconn = []
@@ -158,7 +160,6 @@ def main():
 	print "stage 5-retweet_ids"
 	a = datetime.datetime.now()
 	retweeters = get_followers(retweet_ids)
-	#flwrs_ids = get_followers_ids(retweeters)
 	b = datetime.datetime.now()
 	c = b-a
 	print c
@@ -171,7 +172,6 @@ def main():
 	followers_count = get_followers_count(retweet_ids)
 	print "stage 9-followers count"
 	find_matches(author_username,retweeters)
-#find_matches(retweeters,flwrs_ids,followers_count,retweet_ids,original_tweet,retweeters_ids,author_followers)
 	print "stage 10-starting MongoDB stage"
 	db_insert = Database_Inserting()
 	db_data = {"author_id":author_id,
